@@ -2,4 +2,3 @@ requests
 lxml
 Pillow
 beautifulsoup4
-flask
