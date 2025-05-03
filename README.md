@@ -51,3 +51,9 @@ The resulting SVG will be saved as output.svg in the same directory.
 ## Notes on Visualization Quality
 
 Despite experimenting with various prompts, I've found that the Gemini (2.0 Flash) API doesn't consistently produce visually appealing results for this use case. In comparison, tests with Claude AI (via claude.ai/chats) produced significantly better visualizations for the same inputs.
+
+---
+
+## Demo 
+
+[Watch the demo on YouTube](https://youtu.be/TWxibtpJ5hU)
