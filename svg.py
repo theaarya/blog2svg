@@ -9,7 +9,6 @@ from lxml import etree
 from PIL import Image
 from urllib.parse import urlparse
 from bs4 import BeautifulSoup
-import uuid
 
 # === Configuration ===
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
@@ -74,23 +73,12 @@ def extract_svg_block(text):
     return match.group(0)
 
 def extract_blog_prompt(blog_text):
-    """Ask Gemini for generating prompt for SVG illustration of the entire post."""
     prompt = f"""
 You are a professional concept artist working for a top design agency.
-
-TASK:
-Analyze the following blog post and create a detailed description for generating image/illustration.
-
-REQUIREMENTS:
-- Make sure the prompt is specific and defines every bit of the image in detail.
-- The illustration should be suitable for a blog post and visually striking.
-- The desciption should be clear and concise, suitable for an artist to understand.
-- Make sure to describe the details of image/illustratuion in a way that is easy to visualize.
+Read this blog text and provide a concise prompt that captures its overall themes and key summary in few sentences. Output ONLY the prompt text, nothing else.
 
 BLOG TEXT:
-\"\"\"
-{blog_text}
-\"\"\"
+"{blog_text}"
 """
     prompt_text = call_gemini_api(prompt)
     return prompt_text.strip()
@@ -98,30 +86,20 @@ BLOG TEXT:
 def make_overview_svg_prompt(prompt, idx):
     """Prompt to generate a full-post overview SVG based on the prompt."""
     return f"""
-You are a master SVG artist who specializes in creating detailed, visually striking technical illustrations.
+You are a master SVG artist.
 
-TASK:
-Transform this visualization concept into a professional, high-quality SVG illustration.
+Generate a clean, minimalist SVG illustration (viewBox="{VIEWBOX}") based on the following prompt. The prompt a high level overview of a blog post, the SVG should visually represnt the blog post's main themes and ideas as depicted in the prompt.
 
-CONCEPT:
-\"\"\"
-{prompt}
-\"\"\"
+“{prompt}”
 
-- Output only valid SVG markup with proper xmlns namespace
-- viewBox: {VIEWBOX}
-- Leave bottom-right corner empty for logo ({LOGO_SCALE_PCT*100}% width, {LOGO_PADDING_PX}px padding)
-- Make sure the SVG is well structured and valid
-- Use a dark theme with a modern, sleek design
-COLORS:
-    - Main background: Dark gradient from #121212 to #1E1E1E
-    - Primary elements: Vibrant colors with sufficient contrast (#E0E0E0, #9C27B0, #03DAC6)
-    - Text: Light colors (#FFFFFF, #B0BEC5)
-
-For variant #{idx} of {NUM_IMAGES}, create a {"alternative perspective"[idx-1]} of the same concept.
-
-OUTPUT:
-Return ONLY the SVG code with no explanation or markdown. Start with <svg> and end with </svg>.
+Requirements:
+- Image #{idx}, visually distinct from the other image(s).
+- No CSS, JS, or external fonts.
+- Use dark theme colors (dark background, light foreground).
+- Use only basic SVG shapes like path, rect, circle, line, polygon, ellipse, polyline. Keep text elements to minimal.
+- Leave the bottom-right area (approximately x > {int(VIEWBOX.split()[2]) - LOGO_PADDING_PX - int(float(VIEWBOX.split()[2])*LOGO_SCALE_PCT)}, y > {int(VIEWBOX.split()[3]) - LOGO_PADDING_PX - 50}) empty for a logo overlay. Precise coordinates: x={int(VIEWBOX.split()[2]) * (1-LOGO_SCALE_PCT) - LOGO_PADDING_PX} to {VIEWBOX.split()[2]}, y={int(VIEWBOX.split()[3]) - 50 - LOGO_PADDING_PX} to {VIEWBOX.split()[3]}.
+- Avoid clutter: use at most 100 graphic elements in total.
+- Output ONLY the raw SVG code block, starting exactly with "<svg" and ending exactly with "</svg>". Do not include any explanations, markdown formatting (like ```svg ... ```), or any other text before or after the SVG code.
 """
 
 def validate_svg(svg):
@@ -508,125 +486,3 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\nError during SVG generation: {e}")
         sys.exit(1)
-
-# Add this to the end of the existing svg.py file
-
-# Add a main function for command line usage
-def main():
-    """Command line entry point"""
-    import argparse
-    
-    parser = argparse.ArgumentParser(description="Convert blog content to SVG illustrations")
-    parser.add_argument("input", help="Blog URL or path to HTML file")
-    args = parser.parse_args()
-    
-    input_text = args.input
-    
-    if is_url(input_text):
-        print(f"Fetching content from URL: {input_text}")
-        import requests
-        try:
-            response = requests.get(input_text)
-            response.raise_for_status()
-            html_content = response.text
-            blog_text = extract_content_from_html(html_content)
-        except Exception as e:
-            print(f"Error fetching URL: {e}")
-            sys.exit(1)
-    else:
-        # Try to read as file
-        try:
-            with open(input_text, 'r', encoding='utf-8') as f:
-                html_content = f.read()
-            blog_text = extract_content_from_html(html_content)
-        except Exception as e:
-            print(f"Error reading file: {e}")
-            sys.exit(1)
-    
-    # Generate SVGs
-    try:
-        svgs, saved_files = generate_blog_svgs_overview(blog_text)
-        print(f"Successfully generated {len(svgs)} SVGs:")
-        for path in saved_files:
-            print(f"  - {path}")
-    except Exception as e:
-        print(f"Error generating SVGs: {e}")
-        sys.exit(1)
-
-# Run main function if script is executed directly
-if __name__ == "__main__":
-    main()
-
-# At the end of the file, add this function wrapper:
-
-def generate_blog_svgs_overview(blog_text, save_files=True):
-    """Generate SVG illustrations for a blog post and optionally save them."""
-    start = time.monotonic()
-    svgs = []
-    saved_files = []
-
-    # 1. Get full-post prompt
-    print("Generating prompt...")
-    try:
-        prompt = extract_blog_prompt(blog_text)
-        print(f"Prompt generated: \"{prompt}\"")
-    except Exception as e:
-        print(f"Failed to generate prompt: {e}")
-        raise  # Stop if prompt fails
-
-    # 2. Generate overview SVGs
-    for idx in range(1, NUM_IMAGES + 1):
-        print(f"\nGenerating Overview SVG #{idx}...")
-        for attempt in range(1, MAX_RETRIES + 1):
-            print(f"  Attempt {attempt}/{MAX_RETRIES}...")
-            if time.monotonic() - start > TIMEOUT_SECONDS:
-                raise TimeoutError(f"Exceeded total time limit ({TIMEOUT_SECONDS}s)")
-
-            try:
-                svg_prompt = make_overview_svg_prompt(prompt, idx)
-                # Get raw text response
-                raw_response_text = call_gemini_api(svg_prompt)
-
-                # Extract the SVG block
-                raw_svg = extract_svg_block(raw_response_text)
-
-                # Validate the extracted SVG
-                ok, msg = validate_svg(raw_svg)
-                if not ok:
-                    print(f"  [Attempt {attempt}] Validation failed: {msg}")
-                    if attempt == MAX_RETRIES:
-                         raise RuntimeError(f"Failed to generate valid overview SVG #{idx} after {MAX_RETRIES} attempts. Last error: {msg}")
-                    continue  # Try again
-
-                print(f"  [Attempt {attempt}] SVG validated successfully.")
-                branded = add_logo_to_svg(raw_svg)
-                svgs.append(branded)
-                
-                # Save the SVG to a file only if requested
-                if save_files:
-                    timestamp = time.strftime("%Y%m%d_%H%M%S")
-                    filename = f"blog_svg_{idx}_{timestamp}.svg"
-                    saved_path = save_svg_file(branded, filename)
-                    saved_files.append(saved_path)
-                    print(f"  [Attempt {attempt}] Logo added and SVG saved.")
-                else:
-                    print(f"  [Attempt {attempt}] Logo added (SVG not saved to file).")
-                    
-                break  # Success for this image index, move to the next
-
-            except ValueError as e:  # Catch specific errors
-                print(f"  [Attempt {attempt}] Error during generation/extraction: {e}")
-                if attempt == MAX_RETRIES:
-                    raise RuntimeError(f"Failed to generate valid overview SVG #{idx} after {MAX_RETRIES} attempts. Last error: {e}")
-                continue
-
-            except Exception as e:  # Catch unexpected errors
-                 print(f"  [Attempt {attempt}] Unexpected error: {e}")
-                 if attempt == MAX_RETRIES:
-                    raise RuntimeError(f"Failed to generate overview SVG #{idx} due to unexpected error: {e}")
-                 continue
-
-    if len(svgs) != NUM_IMAGES:
-         raise RuntimeError(f"Pipeline finished but only generated {len(svgs)}/{NUM_IMAGES} SVGs.")
-
-    return svgs, saved_files
