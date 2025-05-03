@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>blog2svg - Convert Blog Content to SVG</title>
+    <link rel="stylesheet" href="../static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>blog2svg</h1>
+            <p>Convert your blog content to beautiful SVG graphics</p>
+        </header>
+
+        <main>
+            <section class="input-section">
+                <h2>Input</h2>
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="url">URL</button>
+                    <button class="tab-btn" data-tab="html">Content</button>
+                </div>
+                
+                <div class="tab-content active" id="url-content">
+                    <form id="url-form">
+                        <div class="form-group">
+                            <label for="blog-url">Blog URL:</label>
+                            <input type="url" id="blog-url" placeholder="https://example.com/blog-post" required>
+                        </div>
+                        <button type="submit" class="btn primary">Convert from URL</button>
+                    </form>
+                </div>
+                
+                <div class="tab-content" id="html-content">
+                    <form id="html-form">
+                        <div class="form-group">
+                            <label for="blog-html">Blog Content:</label>
+                            <textarea id="blog-html" rows="10" placeholder="Paste your blog content here..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn primary">Convert from Content</button>
+                    </form>
+                </div>
+                
+                <div class="alert info">
+                    <p>The SVG generation process may take up to 30-60 seconds depending on the content length.</p>
+                </div>
+            </section>
+
+            <section class="result-section" id="result-section" style="display: none;">
+                <h2>Generated SVGs</h2>
+                <div class="svg-gallery" id="svg-gallery"></div>
+            </section>
+        </main>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Converting your content to SVG...</p>
+            <p class="subtext">This may take 30-60 seconds</p>
+        </div>
+
+        <footer>
+            <p>&copy; 2025 blog2svg - Convert Blog Content to SVG</p>
+        </footer>
+    </div>
+
+    <script src="../static/script.js"></script>
+</body>
+</html>
