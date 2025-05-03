@@ -75,7 +75,10 @@ def extract_svg_block(text):
 def extract_blog_prompt(blog_text):
     prompt = f"""
 You are a professional concept artist working for a top design agency.
-Read this blog text and provide a concise prompt that captures its overall themes and key summary in few sentences. Output ONLY the prompt text, nothing else.
+Read this blog text and provide a concise prompt that captures its overall themes and key summary in few sentences.
+Try to keep the prompt simple and clear, avoiding complex or technical language.
+The prompt should be suitable for generating a simple yet effective SVG illustration.
+Output ONLY the prompt text, nothing else.
 
 BLOG TEXT:
 "{blog_text}"
@@ -96,7 +99,6 @@ Requirements:
 - Image #{idx}, visually distinct from the other image(s).
 - No CSS, JS, or external fonts.
 - Use dark theme colors (dark background, light foreground).
-- Use only basic SVG shapes like path, rect, circle, line, polygon, ellipse, polyline. Keep text elements to minimal.
 - Leave the bottom-right area (approximately x > {int(VIEWBOX.split()[2]) - LOGO_PADDING_PX - int(float(VIEWBOX.split()[2])*LOGO_SCALE_PCT)}, y > {int(VIEWBOX.split()[3]) - LOGO_PADDING_PX - 50}) empty for a logo overlay. Precise coordinates: x={int(VIEWBOX.split()[2]) * (1-LOGO_SCALE_PCT) - LOGO_PADDING_PX} to {VIEWBOX.split()[2]}, y={int(VIEWBOX.split()[3]) - 50 - LOGO_PADDING_PX} to {VIEWBOX.split()[3]}.
 - Avoid clutter: use at most 100 graphic elements in total.
 - Output ONLY the raw SVG code block, starting exactly with "<svg" and ending exactly with "</svg>". Do not include any explanations, markdown formatting (like ```svg ... ```), or any other text before or after the SVG code.
